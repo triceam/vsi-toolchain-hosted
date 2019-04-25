@@ -1,0 +1,241 @@
+---
+stages:
+- name: Build Preparation Stage
+  inputs:
+  - type: git
+    branch: master
+    service: ${REPO}
+  properties:
+  - name: PRIVATE_KEY
+    value: "${PRIVATE_KEY}"
+    type: secure
+  - name: API_KEY
+    value: "${API_KEY}"
+    type: secure
+  - name: VSI_HOST
+    value: "${VSI_HOST}"
+    type: secure
+  jobs:
+  - name: Validate
+    type: builder
+    artifact_dir: ''
+    build_type: shell
+    script: |
+      #!/bin/bash
+      set -eo pipefail
+      bash terraform/scripts/validate.sh
+  - name: Set Keys
+    type: builder
+    artifact_dir: ''
+    build_type: shell
+    script: |
+      #!/bin/bash
+      set -eo pipefail
+      echo "${API_KEY}" > terraform/cloudkey.txt
+      echo "${VSI_HOST}" > terraform/hostip.txt
+      echo "${PRIVATE_KEY}" > terraform/ssh_private_key && chmod 400 terraform/ssh_private_key
+- name: Build Stage
+  inputs:
+  - type: job
+    stage: Build Preparation Stage
+    job: Set Keys
+  triggers:
+  - type: stage
+  jobs:
+  - name: Build
+    type: builder
+    artifact_dir: ''
+    build_type: customimage
+    script: |
+      # download `ibmcloud` cli and `dev` plugin
+      curl -fsSL https://clis.ng.bluemix.net/install/linux | sh
+      ibmcloud plugin install dev
+      
+      # log in and set ibmcloud cli target
+      ibmcloud api https://api.ng.bluemix.net
+      export TF_VAR_ibm_cloud_api_key=$(cat terraform/cloudkey.txt)
+      ibmcloud login --apikey $TF_VAR_ibm_cloud_api_key
+      ibmcloud target --cf-api https://api.ng.bluemix.net 
+      
+      # Fetch CF org and space for the current account 
+      # These are not used during deployment, but must be set to use the `dev` cli.  
+      # Any value will work, so this fetches the first ones encountered
+      export ORG=$(ibmcloud account orgs | awk 'NR==6' | awk '{split($0,a," "); print a[1]}')
+      export SPACE=$(ibmcloud account spaces -o $ORG | awk 'NR==5')
+      ibmcloud target --cf-api https://api.ng.bluemix.net -o $ORG -s $SPACE
+      
+      # fetch credentials for the app instance
+      ibmcloud dev get-credentials
+      
+      # package app for VSI deployment
+      apt-get update && apt-get install -y build-essential debhelper fakeroot
+      bash terraform/scripts/build.sh
+      dpkg-buildpackage -rfakeroot -us -uc -b && mv ../{{lowercaseName}}-0.0_1-1_all.deb terraform/app-0.0_1-1_all.deb
+      if [ ! -f terraform/app-0.0_1-1_all.deb ]; then echo "Debian package was not successfully created."; exit 1; fi
+    $switch:
+      - $expr: $env.language
+      - $default: 'NODE'
+        docker_image: node:8
+      - $case: 'PYTHON'
+        docker_image: python:3
+      - $case: 'DJANGO'
+        docker_image: python:3
+      - $case: 'SWIFT'
+        docker_image: ibmcom/swift-ubuntu:4.1.2
+      - $case: 'SPRING'
+        docker_image: maven:3-jdk-8
+      - $case: 'JAVA'
+        docker_image: maven:3-jdk-8
+      - $case: 'GO'
+        docker_image: golang:1.10
+- name: Deploy / Install / Start Stage
+  inputs:
+  - type: job
+    stage: Terraform Apply Stage
+    job: Apply
+  triggers:
+  - type: stage
+  jobs:
+  - name: Deploy
+    type: builder
+    artifact_dir: ''
+    build_type: customimage
+    $switch:
+      - $expr: $env.language
+      - $default: 'NODE'
+        script: |-
+          #!/bin/sh
+          set -eo pipefail
+          apk add --no-cache openssh rsync
+          VSI_HOST=$(cat hostip.txt)
+          ssh -o StrictHostKeyChecking=no -i ssh_private_key root@$VSI_HOST "apt-get update; apt-get install rsync; mkdir -p app"
+          rsync -arv -e "ssh -i ssh_private_key" app-0.0_1-1_all.deb root@$VSI_HOST:app
+      - $case: 'SPRING'
+        script: |-
+          #!/bin/sh
+          set -eo pipefail
+          apk add --no-cache openssh rsync
+          VSI_HOST=$(cat hostip.txt)
+          ssh -o StrictHostKeyChecking=no -i ssh_private_key root@$VSI_HOST "apt-get update; apt-get install rsync; mkdir -p app"
+          rsync -arv -e "ssh -i ssh_private_key" app-0.0_1-1_all.deb root@$VSI_HOST:app
+
+          echo "scripts/install.sh initial"
+          cat scripts/install.sh
+          # https://unix.stackexchange.com/questions/508724/failed-to-fetch-jessie-backports-repository
+          echo "apt-get update" > scripts/install.sh
+          echo "apt-get install -f" >> scripts/install.sh
+          echo 'echo "deb http://archive.debian.org/debian jessie-backports main" >> /etc/apt/sources.list' >> scripts/install.sh
+          echo 'echo "Acquire::Check-Valid-Until \"false\";" > /etc/apt/apt.conf.d/100disablechecks' >> scripts/install.sh
+          echo 'apt-get -o Acquire::Check-Valid-Until=false update' >> scripts/install.sh
+          echo 'apt-get install -y -t jessie-backports openjdk-8-jre' >> scripts/install.sh
+          echo "install.sh updated"
+          cat scripts/install.sh
+          rsync -arv -e "ssh -i ssh_private_key" scripts/install.sh root@$VSI_HOST:app
+      - $case: 'JAVA'
+        script: |-
+          #!/bin/sh
+          set -eo pipefail
+          apk add --no-cache openssh rsync
+          VSI_HOST=$(cat hostip.txt)
+          ssh -o StrictHostKeyChecking=no -i ssh_private_key root@$VSI_HOST "apt-get update; apt-get install rsync; mkdir -p app"
+          rsync -arv -e "ssh -i ssh_private_key" app-0.0_1-1_all.deb root@$VSI_HOST:app
+          
+          echo "scripts/install.sh initial"
+          cat scripts/install.sh
+          # https://unix.stackexchange.com/questions/508724/failed-to-fetch-jessie-backports-repository
+          echo "apt-get update" > scripts/install.sh
+          echo "apt-get install -f" >> scripts/install.sh
+          echo 'echo "deb http://archive.debian.org/debian jessie-backports main" >> /etc/apt/sources.list' >> scripts/install.sh
+          echo 'echo "Acquire::Check-Valid-Until \"false\";" > /etc/apt/apt.conf.d/100disablechecks' >> scripts/install.sh
+          echo 'apt-get -o Acquire::Check-Valid-Until=false update' >> scripts/install.sh
+          echo 'apt-get install -y -t jessie-backports openjdk-8-jre' >> scripts/install.sh
+          echo "install.sh updated"
+          cat scripts/install.sh
+          rsync -arv -e "ssh -i ssh_private_key" scripts/install.sh root@$VSI_HOST:app
+    
+    docker_image: alpine
+  - name: Install
+    type: builder
+    artifact_dir: ''
+    build_type: shell
+    script: |-
+      #!/bin/bash
+      set -eo pipefail
+      VSI_HOST=$(cat hostip.txt)
+      ssh -o StrictHostKeyChecking=no -i ssh_private_key root@$VSI_HOST "rm -rf /usr/src/app; cd app; dpkg -i app-0.0_1-1_all.deb; cd /usr/src/app; source install.sh"
+  - name: Start
+    type: builder
+    artifact_dir: ''
+    build_type: shell
+    script: |-
+      #!/bin/bash
+      set -eo pipefail
+      VSI_HOST=$(cat hostip.txt)
+      ssh -o StrictHostKeyChecking=no -i ssh_private_key root@$VSI_HOST "cd /usr/src/app; nohup bash start.sh &> output.log &"
+      ssh -o StrictHostKeyChecking=no -i ssh_private_key root@$VSI_HOST "cd /usr/src/app; cat output.log"
+- name: Health Check Stage
+  inputs:
+  - type: job
+    stage: Deploy / Install / Start Stage
+    job: Start
+  triggers:
+  - type: stage
+  jobs:
+  - name: Test
+    type: tester
+
+    $switch:
+      - $expr: $env.language
+      - $default: 'NODE'
+        script: |-
+          #!/bin/sh
+          set -eo pipefail
+          apk add --no-cache curl openssh
+          VSI_HOST=$(cat hostip.txt)
+          PORT='3000'
+          
+          # sleep for 10 seconds to allow enough time for the server to start
+          sleep 10
+          if [ $(curl -sL -w "%{http_code}\\n" "http://${VSI_HOST}:${PORT}/" -o /dev/null --connect-timeout 3 --max-time 5 --retry 3 --retry-max-time 30) == "200" ]; then
+            echo "Successfully reached health endpoint: http://${VSI_HOST}:${PORT}/"
+            echo "====================================================================="
+          else
+            echo "Could not reach health endpoint: http://${VSI_HOST}:${PORT}/"
+            exit 1;
+          fi;
+      - $case: 'JAVA'
+        script: |-
+          #!/bin/sh
+          set -eo pipefail
+          apk add --no-cache curl openssh
+          VSI_HOST=$(cat hostip.txt)
+          PORT='9080'
+          
+          # sleep for 10 seconds to allow enough time for the server to start
+          sleep 10
+          if [ $(curl -sL -w "%{http_code}\\n" "http://${VSI_HOST}:${PORT}/" -o /dev/null --connect-timeout 3 --max-time 5 --retry 3 --retry-max-time 30) == "200" ]; then
+            echo "Successfully reached health endpoint: http://${VSI_HOST}:${PORT}/"
+            echo "====================================================================="
+          else
+            echo "Could not reach health endpoint: http://${VSI_HOST}:${PORT}/"
+            exit 1;
+          fi;
+      - $case: 'GO'
+        script: |-
+          #!/bin/sh
+          set -eo pipefail
+          apk add --no-cache curl openssh
+          VSI_HOST=$(cat hostip.txt)
+          PORT='8080'
+          
+          # sleep for 10 seconds to allow enough time for the server to start
+          sleep 10
+          if [ $(curl -sL -w "%{http_code}\\n" "http://${VSI_HOST}:${PORT}/" -o /dev/null --connect-timeout 3 --max-time 5 --retry 3 --retry-max-time 30) == "200" ]; then
+            echo "Successfully reached health endpoint: http://${VSI_HOST}:${PORT}/"
+            echo "====================================================================="
+          else
+            echo "Could not reach health endpoint: http://${VSI_HOST}:${PORT}/"
+            exit 1;
+          fi;
+    test_type: customimage
+    docker_image: alpine
