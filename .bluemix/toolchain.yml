@@ -58,8 +58,5 @@ services:
 form:
   pipeline:
     parameters:
-      vsi-host: ''
-      private-key: ''
-      api-key: ''
     schema:
       $ref: deploy.json
