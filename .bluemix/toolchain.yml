@@ -2,6 +2,8 @@ version: '2'
 messages:
   $i18n: locales.yml
 template:
+  name: Node.js Deploy to VSI
+  description: Deploy a Node.js application to an existing VSI instance.
   icon: icon.svg
   required:
     - sample-build
