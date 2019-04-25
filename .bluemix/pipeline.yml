@@ -40,25 +40,120 @@ stages:
     artifact_dir: ''
     build_type: customimage
     script: |
-      # download `ibmcloud` cli and `dev` plugin
-      curl -fsSL https://clis.ng.bluemix.net/install/linux | sh
-      ibmcloud plugin install dev
-      
-      # log in and set ibmcloud cli target
-      ibmcloud api https://api.ng.bluemix.net
-      export TF_VAR_ibm_cloud_api_key=$(cat pipeline/cloudkey.txt)
-      ibmcloud login --apikey $TF_VAR_ibm_cloud_api_key
-      ibmcloud target --cf-api https://api.ng.bluemix.net 
-      
-      # Fetch CF org and space for the current account 
-      # These are not used during deployment, but must be set to use the `dev` cli.  
-      # Any value will work, so this fetches the first ones encountered
-      export ORG=$(ibmcloud account orgs | awk 'NR==6' | awk '{split($0,a," "); print a[1]}')
-      export SPACE=$(ibmcloud account spaces -o $ORG | awk 'NR==5')
-      ibmcloud target --cf-api https://api.ng.bluemix.net -o $ORG -s $SPACE
-      
-      # fetch credentials for the app instance
-      ibmcloud dev get-credentials
+      mkdir debian
+
+      echo "scripts/install.sh initial"
+      mkdir scripts
+      echo "apt-get update" > scripts/install.sh
+      echo "apt-get install -f" >> scripts/install.sh
+      echo 'if ! [ -x "$(command -v nvm)" ]; then' >> scripts/install.sh
+      echo "wget -qO- 'https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh' | bash -;" >> scripts/install.sh
+      echo "source ~/.profile" >> scripts/install.sh
+      echo "fi" >> scripts/install.sh
+      echo "nvm install 8.16.0" >> scripts/install.sh
+      echo "install.sh updated"
+      cat scripts/install.sh
+
+
+      echo "scripts/start.sh initial"
+      #mkdir scripts
+      echo "pkill node" > scripts/start.sh
+      echo "npm start" > scripts/start.sh
+      echo "start.sh updated"
+      cat scripts/start.sh
+
+      echo "app-0.0 (1-1) unstable; urgency=low" >> debian/changelog
+      echo " " >> debian/changelog
+      echo "  * Initial release." >> debian/changelog
+      echo " " >> debian/changelog
+      echo " -- John Doe <replacethiswithyourem@il.com>  Mon, 1 Jan 2000 00:00:00 -0000" >> debian/changelog
+
+      echo "----------"
+      echo "debian/changelog"
+      echo "----------"
+      cat debian/changelog
+      echo "----------"
+
+      echo "9" >> debian/compat
+
+      echo "----------"
+      echo "debian/compat"
+      echo "----------"
+      cat debian/compat
+      echo "----------"
+
+      echo "Source: app-0.0" >> debian/control
+      echo "Section: x11" >> debian/control
+      echo "Priority: optional" >> debian/control
+      echo "Maintainer: John Doe <replacethiswithyourem@il.com>" >> debian/control
+      echo "Build-Depends: debhelper (>= 9)" >> debian/control
+      echo "Standards-Version: 3.9.8" >> debian/control
+      echo " " >> debian/control
+      echo "Package: app-0.0" >> debian/control
+      echo "Architecture: all" >> debian/control
+      depends='${misc:Depends}'
+      echo "Depends: $depends" >> debian/control
+      echo "Description: This package transfers app code to VSI for deployment" >> debian/control
+
+      echo "----------"
+      echo "debian/control"
+      echo "----------"
+      cat debian/control
+      echo "----------"
+
+      #echo "node_modules					usr/src/app" >> debian/install
+      #echo "package.json					usr/src/app" >> debian/install
+      #echo "package-lock.json				usr/src/app" >> debian/install
+      #echo "run-debug                       usr/src/app" >> debian/install
+      #echo "run-dev                         usr/src/app" >> debian/install
+      #echo "server							usr/src/app" >> debian/install
+
+      for f in * 
+      do 
+        if [ "$f" != "debian" ]; then
+          echo "$f					usr/src/app" >> debian/install
+        fi
+      done
+      echo "scripts/install.sh					usr/src/app" >> debian/install
+      echo "scripts/start.sh					usr/src/app" >> debian/install
+
+      echo "----------"
+      echo "debian/install"
+      echo "----------"
+      cat debian/install
+      echo "----------"
+
+      echo "#!/usr/bin/make -f" >> debian/rules
+      echo "# See debhelper(7) (uncomment to enable)" >> debian/rules
+      echo "# output every command that modifies files on the build system." >> debian/rules
+      echo "#export DH_VERBOSE = 1" >> debian/rules
+      echo " " >> debian/rules
+      echo "# see FEATURE AREAS in dpkg-buildflags(1)" >> debian/rules
+      echo "#export DEB_BUILD_MAINT_OPTIONS = hardening=+all" >> debian/rules
+      echo " " >> debian/rules
+      echo "# see ENVIRONMENT in dpkg-buildflags(1)" >> debian/rules
+      echo "# package maintainers to append CFLAGS" >> debian/rules
+      echo "#export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic" >> debian/rules
+      echo "# package maintainers to append LDFLAGS" >> debian/rules
+      echo "#export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed" >> debian/rules
+       echo "" >> debian/rules
+      echo "%:" >> debian/rules
+      dollarAt='$@'
+      echo "	dh $dollarAt" >> debian/rules
+      echo " " >> debian/rules
+      echo "# dh_make generated override targets" >> debian/rules
+      echo "# This is example for Cmake (See https://bugs.debian.org/641051 )" >> debian/rules
+      echo "#override_dh_auto_configure:" >> debian/rules
+      deb_host='$(DEB_HOST_MULTIARCH)'
+      echo "#	dh_auto_configure -- #	-DCMAKE_LIBRARY_PATH=$deb_host" >> debian/rules
+
+      echo "----------"
+      echo "debian/rules"
+      echo "----------"
+      cat debian/rules
+      echo "----------"
+
+
       
       # package app for VSI deployment
       apt-get update && apt-get install -y build-essential debhelper fakeroot
@@ -69,8 +164,8 @@ stages:
 - name: Deploy / Install / Start Stage
   inputs:
   - type: job
-    stage: Terraform Apply Stage
-    job: Apply
+    stage: BuildStage
+    job: Build
   triggers:
   - type: stage
   jobs:
@@ -81,10 +176,13 @@ stages:
     script: |-
       #!/bin/sh
       set -eo pipefail
+
+
+
       apk add --no-cache openssh rsync
-      VSI_HOST=$(cat hostip.txt)
-      ssh -o StrictHostKeyChecking=no -i ssh_private_key root@$VSI_HOST "apt-get update; apt-get install rsync; mkdir -p app"
-      rsync -arv -e "ssh -i ssh_private_key" app-0.0_1-1_all.deb root@$VSI_HOST:app
+      VSI_HOST=$(cat pipeline/hostip.txt)
+      ssh -o StrictHostKeyChecking=no -i pipeline/ssh_private_key root@$VSI_HOST "apt-get update; apt-get install rsync; mkdir -p app"
+      rsync -arv -e "ssh -i pipeline/ssh_private_key" pipeline/app-0.0_1-1_all.deb root@$VSI_HOST:app
     docker_image: alpine
   - name: Install
     type: builder
@@ -93,8 +191,8 @@ stages:
     script: |-
       #!/bin/bash
       set -eo pipefail
-      VSI_HOST=$(cat hostip.txt)
-      ssh -o StrictHostKeyChecking=no -i ssh_private_key root@$VSI_HOST "rm -rf /usr/src/app; cd app; dpkg -i app-0.0_1-1_all.deb; cd /usr/src/app; source install.sh"
+      VSI_HOST=$(cat pipeline/hostip.txt)
+      ssh -o StrictHostKeyChecking=no -i pipeline/ssh_private_key root@$VSI_HOST "rm -rf /usr/src/app; cd app; dpkg -i app-0.0_1-1_all.deb; cd /usr/src/app; source install.sh"
   - name: Start
     type: builder
     artifact_dir: ''
@@ -102,9 +200,9 @@ stages:
     script: |-
       #!/bin/bash
       set -eo pipefail
-      VSI_HOST=$(cat hostip.txt)
-      ssh -o StrictHostKeyChecking=no -i ssh_private_key root@$VSI_HOST "cd /usr/src/app; nohup bash start.sh &> output.log &"
-      ssh -o StrictHostKeyChecking=no -i ssh_private_key root@$VSI_HOST "cd /usr/src/app; cat output.log"
+      VSI_HOST=$(cat pipeline/hostip.txt)
+      ssh -o StrictHostKeyChecking=no -i pipeline/ssh_private_key root@$VSI_HOST "cd /usr/src/app; nohup bash start.sh &> output.log &"
+      ssh -o StrictHostKeyChecking=no -i pipeline/ssh_private_key root@$VSI_HOST "cd /usr/src/app; cat output.log"
 - name: Health Check Stage
   inputs:
   - type: job
