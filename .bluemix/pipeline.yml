@@ -58,8 +58,8 @@ stages:
 
       echo "scripts/start.sh initial"
       echo "pkill node" > scripts/start.sh
-      echo "export PORT='3000'" > scripts/start.sh
-      echo "npm start" > scripts/start.sh
+      echo "export PORT='3000'" >> scripts/start.sh
+      echo "npm start" >> scripts/start.sh
       echo "start.sh updated"
       cat scripts/start.sh
 
@@ -105,12 +105,12 @@ stages:
       fileMatch="_script.sh"
       for f in * 
       do 
-        if [[ "$f" != "debian" && "$f" != "_env" && $f =~ $fileMatch ]; then
+        if [[ "$f" != "debian" && "$f" != "_env" && ! $f =~ $fileMatch ]; then
           echo "$f					usr/src/app" >> debian/install
         fi
       done
-      echo "scripts/install.sh					usr/src/app" >> debian/install
-      echo "scripts/start.sh					usr/src/app" >> debian/install
+      #echo "scripts/install.sh					usr/src/app" >> debian/install
+      #echo "scripts/start.sh					usr/src/app" >> debian/install
 
       echo "----------"
       echo "debian/install"
