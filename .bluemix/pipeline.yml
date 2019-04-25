@@ -4,7 +4,7 @@ stages:
   inputs:
   - type: git
     branch: master
-    service: ${REPO}
+    service: ${SAMPLE_REPO}
   properties:
   - name: PRIVATE_KEY
     value: "${PRIVATE_KEY}"
@@ -23,9 +23,10 @@ stages:
     script: |
       #!/bin/bash
       set -eo pipefail
-      echo "${API_KEY}" > terraform/cloudkey.txt
-      echo "${VSI_HOST}" > terraform/hostip.txt
-      echo "${PRIVATE_KEY}" > terraform/ssh_private_key && chmod 400 terraform/ssh_private_key
+      mkdir pipeline
+      echo "${API_KEY}" > pipeline/cloudkey.txt
+      echo "${VSI_HOST}" > pipeline/hostip.txt
+      echo "${PRIVATE_KEY}" > pipeline/ssh_private_key && chmod 400 pipeline/ssh_private_key
 - name: Build Stage
   inputs:
   - type: job
@@ -45,7 +46,7 @@ stages:
       
       # log in and set ibmcloud cli target
       ibmcloud api https://api.ng.bluemix.net
-      export TF_VAR_ibm_cloud_api_key=$(cat terraform/cloudkey.txt)
+      export TF_VAR_ibm_cloud_api_key=$(cat pipeline/cloudkey.txt)
       ibmcloud login --apikey $TF_VAR_ibm_cloud_api_key
       ibmcloud target --cf-api https://api.ng.bluemix.net 
       
@@ -61,9 +62,9 @@ stages:
       
       # package app for VSI deployment
       apt-get update && apt-get install -y build-essential debhelper fakeroot
-      bash terraform/scripts/build.sh
-      dpkg-buildpackage -rfakeroot -us -uc -b && mv ../app-0.0_1-1_all.deb terraform/app-0.0_1-1_all.deb
-      if [ ! -f terraform/app-0.0_1-1_all.deb ]; then echo "Debian package was not successfully created."; exit 1; fi
+      bash pipeline/scripts/build.sh
+      dpkg-buildpackage -rfakeroot -us -uc -b && mv ../app-0.0_1-1_all.deb pipeline/app-0.0_1-1_all.deb
+      if [ ! -f pipeline/app-0.0_1-1_all.deb ]; then echo "Debian package was not successfully created."; exit 1; fi
     $switch:
       - $expr: $env.language
       - $default: 'NODE'
