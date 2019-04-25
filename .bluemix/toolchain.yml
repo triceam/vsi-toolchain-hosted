@@ -62,5 +62,6 @@ form:
       private-key: ''
       api-key: ''
       type: 'clone'
+      app_repo: 'https://github.com/open-toolchain/node-hello-world'
     schema:
       $ref: deploy.json
