@@ -23,12 +23,14 @@
         {
             "type": "text",
             "readonly": false,
-            "title": "vsi-host"
+            "title": "vsi-host",
+            "key": "vsi-host"
         },
         {
             "type": "textarea",
             "readonly": false,
-            "title": "private-key"
+            "title": "private-key",
+            "key": "private-key"
         }
     ]
 }
