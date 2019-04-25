@@ -40,6 +40,7 @@ stages:
     artifact_dir: ''
     build_type: customimage
     script: |
+      #!/bin/bash
       mkdir debian
 
       echo "scripts/install.sh initial"
@@ -105,12 +106,10 @@ stages:
       fileMatch="_script.sh"
       for f in * 
       do 
-        if [[ "$f" != "debian" && "$f" != "_env" && ! $f =~ $fileMatch ]; then
+        if [ "$f" != "debian" && "$f" != "_env" && "$f" != *"_script.sh"  ]; then
           echo "$f					usr/src/app" >> debian/install
         fi
       done
-      #echo "scripts/install.sh					usr/src/app" >> debian/install
-      #echo "scripts/start.sh					usr/src/app" >> debian/install
 
       echo "----------"
       echo "debian/install"
@@ -185,7 +184,7 @@ stages:
       #!/bin/bash
       set -eo pipefail
       VSI_HOST=$(cat pipeline/hostip.txt)
-      ssh -o StrictHostKeyChecking=no -i pipeline/ssh_private_key root@$VSI_HOST "rm -rf /usr/src/app; cd app; dpkg -i app-0.0_1-1_all.deb; cd /usr/src/app; source install.sh"
+      ssh -o StrictHostKeyChecking=no -i pipeline/ssh_private_key root@$VSI_HOST "rm -rf /usr/src/app; cd app; dpkg -i app-0.0_1-1_all.deb; cd /usr/src/app; source scripts/install.sh"
   - name: Start
     type: builder
     artifact_dir: ''
@@ -194,7 +193,7 @@ stages:
       #!/bin/bash
       set -eo pipefail
       VSI_HOST=$(cat pipeline/hostip.txt)
-      ssh -o StrictHostKeyChecking=no -i pipeline/ssh_private_key root@$VSI_HOST "cd /usr/src/app; nohup bash start.sh &> output.log &"
+      ssh -o StrictHostKeyChecking=no -i pipeline/ssh_private_key root@$VSI_HOST "cd /usr/src/app; nohup bash scripts/start.sh &> output.log &"
       ssh -o StrictHostKeyChecking=no -i pipeline/ssh_private_key root@$VSI_HOST "cd /usr/src/app; cat output.log"
 - name: Health Check Stage
   inputs:
