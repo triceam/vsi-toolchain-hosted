@@ -56,8 +56,8 @@ services:
 form:
   pipeline:
     parameters:
-      vsi-host: '{{services.sample-repo.parameters.vsi-host}}'
-      private-key: '{{services.sample-repo.parameters.private-key}}'
-      api-key: '{{services.sample-repo.parameters.api-key}}'
+      vsi-host: ''
+      private-key: ''
+      api-key: ''
     schema:
       $ref: deploy.json
