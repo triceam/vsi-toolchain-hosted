@@ -12,11 +12,7 @@
             "type": "string"
         }
     },
-    "required": [
-        "vsi-host",
-        "private-key",
-        "api-key"
-    ],
+    "required": [],
     "form": [
         {
             "type": "validator",
