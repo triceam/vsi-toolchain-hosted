@@ -1,17 +1,5 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "messages": {
-        "$i18n": "locales.yml"
-    },
-    "title": {
-        "$ref": "#/messages/deploy.title"
-    },
-    "description": {
-        "$ref": "#/messages/deploy.description"
-    },
-    "longDescription": {
-        "$ref": "#/messages/deploy.longDescription"
-    },
     "type": "object",
     "properties": {
         "vsi-host": {
@@ -38,7 +26,7 @@
             "type": "text",
             "readonly": false,
             "title": {
-                "$ref": "#/messages/deploy.vsi-host"
+                "$ref": "vsi-host"
             },
             "key": "vsi-host"
         },
@@ -46,7 +34,7 @@
             "type": "text",
             "readonly": false,
             "title": {
-                "$ref": "#/messages/deploy.private-key"
+                "$ref": "private-key"
             },
             "key": "private-key"
         },
@@ -54,7 +42,7 @@
 	        "type": "password",
 	        "readonly": false,
 	        "title": {
-                   "$ref": "#/messages/deploy.apiKeyTitle"
+                   "$ref": "api-key"
                 },
 	        "key": "api-key"
         }

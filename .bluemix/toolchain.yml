@@ -3,19 +3,13 @@ messages:
   $i18n: locales.yml
 template:
   name:
-    $ref: "#/messages/template.name"
-  description:
-    $ref: "#/messages/template.description"
-  header: '![](toolchain.svg?localize)'
+    $ref: "vsi-deploy"
   icon: icon.svg
   required:
     - sample-build
     - sample-repo
 toolchain:
   name: 'vsi-toolchain-{{timestamp}}'
-  template:
-    getting_started:
-      $ref: "#/messages/template.gettingStarted"
 services:
   sample-repo:
     $switch:
