@@ -62,7 +62,7 @@ stages:
       # package app for VSI deployment
       apt-get update && apt-get install -y build-essential debhelper fakeroot
       bash terraform/scripts/build.sh
-      dpkg-buildpackage -rfakeroot -us -uc -b && mv ../{{lowercaseName}}-0.0_1-1_all.deb terraform/app-0.0_1-1_all.deb
+      dpkg-buildpackage -rfakeroot -us -uc -b && mv ../app-0.0_1-1_all.deb terraform/app-0.0_1-1_all.deb
       if [ ! -f terraform/app-0.0_1-1_all.deb ]; then echo "Debian package was not successfully created."; exit 1; fi
     $switch:
       - $expr: $env.language
