@@ -24,7 +24,6 @@ stages:
       #!/bin/bash
       set -eo pipefail
       mkdir pipeline
-      echo "${API_KEY}" > pipeline/cloudkey.txt
       echo "${VSI_HOST}" > pipeline/hostip.txt
       echo "${PRIVATE_KEY}" > pipeline/ssh_private_key && chmod 400 pipeline/ssh_private_key
 - name: Build Stage

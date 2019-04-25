@@ -3,19 +3,17 @@
     "type": "object",
     "properties": {
         "vsi-host": {
-            "type": "string"
+            "type": "string",
+            "description": "IP Address for your VSI instance"
         },
         "private-key": {
-            "type": "textarea"
-        },
-        "api-key": {
-            "type": "string"
+            "type": "textarea",
+            "description": "SSH Private Key for accessing the VSI instance"
         }
     },
     "required": [
         "vsi-host",
-        "private-key",
-        "api-key"
+        "private-key"
     ],
     "form": [
         {
@@ -25,20 +23,12 @@
         {
             "type": "text",
             "readonly": false,
-            "title": "vsi-host",
-            "key": "vsi-host"
+            "title": "vsi-host"
         },
         {
             "type": "textarea",
             "readonly": false,
-            "title": "private-key",
-            "key": "private-key"
-        },
-        {
-	        "type": "password",
-	        "readonly": false,
-	        "title": "api-key",
-	        "key": "api-key"
+            "title": "private-key"
         }
     ]
 }
