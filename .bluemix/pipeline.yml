@@ -16,14 +16,6 @@ stages:
     value: "${VSI_HOST}"
     type: secure
   jobs:
-  - name: Validate
-    type: builder
-    artifact_dir: ''
-    build_type: shell
-    script: |
-      #!/bin/bash
-      set -eo pipefail
-      bash terraform/scripts/validate.sh
   - name: Set Keys
     type: builder
     artifact_dir: ''
