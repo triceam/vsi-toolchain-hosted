@@ -4,7 +4,7 @@ stages:
   inputs:
   - type: git
     branch: master
-    service: ${REPO}
+    service: ${SAMPLE_REPO}
   properties:
   - name: PRIVATE_KEY
     value: "${PRIVATE_KEY}"
