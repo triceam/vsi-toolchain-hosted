@@ -25,25 +25,19 @@
         {
             "type": "text",
             "readonly": false,
-            "title": {
-                "$ref": "vsi-host"
-            },
+            "title": "vsi-host",
             "key": "vsi-host"
         },
         {
             "type": "text",
             "readonly": false,
-            "title": {
-                "$ref": "private-key"
-            },
+            "title": "private-key",
             "key": "private-key"
         },
         {
 	        "type": "password",
 	        "readonly": false,
-	        "title": {
-                   "$ref": "api-key"
-                },
+	        "title": "api-key",
 	        "key": "api-key"
         }
     ]
