@@ -29,7 +29,7 @@
             "key": "vsi-host"
         },
         {
-            "type": "text",
+            "type": "textarea",
             "readonly": false,
             "title": "private-key",
             "key": "private-key"
