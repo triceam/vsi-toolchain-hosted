@@ -51,13 +51,14 @@ stages:
       echo "source ~/.profile" >> scripts/install.sh
       echo "fi" >> scripts/install.sh
       echo "nvm install 8.16.0" >> scripts/install.sh
+      echo "npm install" >> scripts/install.sh
       echo "install.sh updated"
       cat scripts/install.sh
 
 
       echo "scripts/start.sh initial"
-      #mkdir scripts
       echo "pkill node" > scripts/start.sh
+      echo "export PORT='3000'" > scripts/start.sh
       echo "npm start" > scripts/start.sh
       echo "start.sh updated"
       cat scripts/start.sh
@@ -101,16 +102,10 @@ stages:
       cat debian/control
       echo "----------"
 
-      #echo "node_modules					usr/src/app" >> debian/install
-      #echo "package.json					usr/src/app" >> debian/install
-      #echo "package-lock.json				usr/src/app" >> debian/install
-      #echo "run-debug                       usr/src/app" >> debian/install
-      #echo "run-dev                         usr/src/app" >> debian/install
-      #echo "server							usr/src/app" >> debian/install
-
+      fileMatch="_script.sh"
       for f in * 
       do 
-        if [ "$f" != "debian" ]; then
+        if [[ "$f" != "debian" && "$f" != "_env" && $f =~ $fileMatch ]; then
           echo "$f					usr/src/app" >> debian/install
         fi
       done
@@ -164,7 +159,7 @@ stages:
 - name: Deploy / Install / Start Stage
   inputs:
   - type: job
-    stage: BuildStage
+    stage: Build Stage
     job: Build
   triggers:
   - type: stage
@@ -176,8 +171,6 @@ stages:
     script: |-
       #!/bin/sh
       set -eo pipefail
-
-
 
       apk add --no-cache openssh rsync
       VSI_HOST=$(cat pipeline/hostip.txt)
@@ -217,7 +210,7 @@ stages:
       #!/bin/sh
       set -eo pipefail
       apk add --no-cache curl openssh
-      VSI_HOST=$(cat hostip.txt)
+      VSI_HOST=$(cat pipeline/hostip.txt)
       PORT='3000'
       
       # sleep for 10 seconds to allow enough time for the server to start
