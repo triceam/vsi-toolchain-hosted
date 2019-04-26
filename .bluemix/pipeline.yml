@@ -9,9 +9,6 @@ stages:
   - name: PRIVATE_KEY
     value: "${PRIVATE_KEY}"
     type: secure
-  - name: API_KEY
-    value: "${API_KEY}"
-    type: secure
   - name: VSI_HOST
     value: "${VSI_HOST}"
     type: secure
@@ -105,7 +102,7 @@ stages:
       fileMatch="_script.sh"
       for f in * 
       do 
-        if [ "$f" != "debian" && "$f" != "_env" && "$f" != *"_script.sh"  ]; then
+        if [[ "$f" != "debian" && "$f" != "_env" && "$f" != *"_script.sh"  ]]; then
           echo "$f					usr/src/app" >> debian/install
         fi
       done
