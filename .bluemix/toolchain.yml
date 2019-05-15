@@ -13,7 +13,7 @@ toolchain:
   name: 'vsi-toolchain-{{timestamp}}'
 services:
   terraform-repo: 
-    service_id: hostedgit
+    service_id: $env.source_provider
     parameters:
       repo_url: "https://github.com/triceam/vsi-terraform"
       repo_name: "vsi-terraform-{{timestamp}}"
