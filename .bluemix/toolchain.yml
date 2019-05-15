@@ -21,6 +21,23 @@ services:
       has_issues: true
       enable_traceability: true
 
+  terraform-build:
+    service_id: pipeline
+    parameters:
+      services:
+        - terraform-repo
+      name: 'terraform-pipeline'
+      ui-pipeline: true
+      configuration:
+        content:
+          $text: terrafrom-pipeline.yml
+        env:
+          REPO: terraform-repo
+          VSI_HOST: '{{form.pipeline.parameters.vsi-host}}'
+          PRIVATE_KEY: '{{form.pipeline.parameters.private-key}}'
+          API_KEY: '{{form.pipeline.parameters.api-key}}'
+        execute: true
+
   sample-repo:
     $switch:
       - $expr: $env.source_provider
@@ -58,7 +75,7 @@ services:
         content:
           $text: pipeline.yml
         env:
-          SAMPLE_REPO: sample-repo
+          REPO: sample-repo
           VSI_HOST: '{{form.pipeline.parameters.vsi-host}}'
           PRIVATE_KEY: '{{form.pipeline.parameters.private-key}}'
           API_KEY: '{{form.pipeline.parameters.api-key}}'
