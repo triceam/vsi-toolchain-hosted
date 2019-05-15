@@ -30,7 +30,7 @@ services:
       ui-pipeline: true
       configuration:
         content:
-          $text: terrafrom-pipeline.yml
+          $text: terraform-pipeline.yml
         env:
           REPO: terraform-repo
           VSI_HOST: '{{form.pipeline.parameters.vsi-host}}'
