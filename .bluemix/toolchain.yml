@@ -6,11 +6,21 @@ template:
   description: Deploy a Node.js application to an existing VSI instance.
   icon: icon.svg
   required:
+    - terraform-repo
     - sample-build
     - sample-repo
 toolchain:
   name: 'vsi-toolchain-{{timestamp}}'
 services:
+  terraform-repo: 
+    service_id: hostedgit
+    parameters:
+      repo_url: "https://github.com/triceam/vsi-terraform"
+      repo_name: "vsi-terraform-{{timestamp}}"
+      type: clone
+      has_issues: true
+      enable_traceability: true
+
   sample-repo:
     $switch:
       - $expr: $env.source_provider
