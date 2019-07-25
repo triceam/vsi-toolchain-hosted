@@ -57,7 +57,7 @@ services:
       ui-pipeline: true
       configuration:
         content:
-          $text: pipeline.yml
+          $text: delivery-pipeline.yml
         env:
           REPO: sample-repo
           VSI_HOST: '{{form.pipeline.parameters.vsi-host}}'
