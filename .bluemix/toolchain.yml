@@ -39,7 +39,7 @@ services:
         execute: true
 
   sample-repo:
-    service_id: $env.source_provider
+    service_id: $env.source_provider || 'hostedgit'
     parameters:
       source_repo_url: $env.app_repo || 'https://github.com/open-toolchain/node-hello-world'
       repo_url: $env.app_repo || 'https://github.com/open-toolchain/node-hello-world'
