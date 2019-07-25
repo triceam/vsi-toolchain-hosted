@@ -43,7 +43,7 @@ services:
     parameters:
       source_repo_url: $env.app_repo || 'https://github.com/open-toolchain/node-hello-world'
       repo_url: $env.app_repo || 'https://github.com/open-toolchain/node-hello-world'
-      repo_name: "vsi-terraform-{{timestamp}}"
+      repo_name: "vsi-terraform-app-{{timestamp}}"
       type: clone
       has_issues: true
       enable_traceability: true
